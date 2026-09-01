@@ -1,0 +1,154 @@
+# ==============================================================================
+#  aws-secrets-manager — terraform.tfvars
+# ==============================================================================
+#  Copy this file to `terraform.tfvars`, set the values, then run:
+#      tofu init && tofu apply        (or:  terraform init && terraform apply)
+#
+# AUTHENTICATION — AWS:
+#   The AWS provider authenticates exactly like the AWS SDK/CLI, resolving
+#   credentials through a fixed precedence chain and (separately) requiring a
+#   region.
+#   Quick start: aws sso login --profile <name> (or `aws configure sso`
+#   first-time setup; `aws configure` for static keys). The SDK/Terraform read
+#   the SSO/credential cache automatically.
+#   Environment variables Terraform reads:
+#     AWS_ACCESS_KEY_ID  (secret) — Access key ID for static/temporary credentials.
+#     AWS_SECRET_ACCESS_KEY  (secret) — Secret access key paired with the access key ID.
+#     AWS_SESSION_TOKEN  (secret) — Session token for temporary (STS) credentials.
+#     AWS_REGION — Target AWS region (required); preferred over AWS_DEFAULT_REGION.
+#     AWS_DEFAULT_REGION — Legacy region variable; used if AWS_REGION is unset.
+#   Full guide (auth + remote state):  docs/CONNECTING-PROVIDERS.md#aws
+#
+#  Secrets below read "REPLACE_ME" — never commit real secrets. Prefer
+#  TF_VAR_<name> environment variables or a secrets manager.
+#  Status: static-validated, live-test pending (see README.md).
+# ==============================================================================
+
+
+# ------------------------------------------------------------------------------
+#  REQUIRED — you must set these
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#  OPTIONAL — defaults shown; uncomment a line to override
+# ------------------------------------------------------------------------------
+
+# name  —  string  (optional, default: null)
+#   Name of the secret. Mutually exclusive with name_prefix.
+#   Constraint: name must be 1-512 characters of [a-zA-Z0-9/_+=.@-].
+name        = "iacbazaar-example/app/db-credentials"
+
+# name_prefix  —  string  (optional, default: null)
+#   Creates a unique name beginning with this prefix. Mutually exclusive with
+#   name.
+# name_prefix = null
+
+# description  —  string  (optional, default: "Managed by IaC Bazaar aws-secrets-manager module.")
+#   Description of the secret.
+description = "Database credentials for the example app"
+
+# kms_key_id  —  string  (optional, default: null)
+#   Customer-managed KMS key (id or ARN) used to encrypt the secret. Null uses
+#   the AWS-managed aws/secretsmanager key (still encrypted). A CMK is
+#   recommended for cross-account/replica access control.
+# kms_key_id = null
+
+# recovery_window_in_days  —  number  (optional, default: 30)
+#   Recovery window after deletion (0, or 7-30 days). Defaults to the maximum
+#   (30) so a deleted secret can be restored. Set to 0 ONLY for disposable test
+#   secrets that must destroy immediately (irrecoverable).
+#   Constraint: recovery_window_in_days must be 0 (immediate, irrecoverable) or
+#   between 7 and 30.
+recovery_window_in_days = 0
+
+# force_overwrite_replica_secret  —  bool  (optional, default: false)
+#   Overwrite a secret with the same name in a replica region. Leave false
+#   unless you intend to clobber an existing replica.
+# force_overwrite_replica_secret = false
+
+# secret_string  —  string  (optional, sensitive, default: null)
+#   Initial secret value stored in Terraform state (sensitive). Leave null to
+#   create no initial version, or prefer secret_string_wo on Terraform 1.11+ to
+#   keep the value out of state.
+# secret_string = null
+
+# secret_string_wo  —  string  (optional, sensitive, default: null)
+#   Initial secret value supplied as a write-only argument (Terraform 1.11+):
+#   never persisted to state. Requires secret_string_wo_version to be
+#   set/incremented to apply changes.
+# secret_string_wo = null
+
+# secret_string_wo_version  —  number  (optional, default: null)
+#   Version trigger for secret_string_wo. Increment to push a new write-only
+#   value.
+# secret_string_wo_version = null
+
+# create_initial_version  —  bool  (optional, default: true)
+#   Whether to create an initial secret version from secret_string /
+#   secret_string_wo. Disable to let an external process (rotation Lambda, CLI)
+#   own the value.
+create_initial_version = false
+
+# create_resource_policy  —  bool  (optional, default: true)
+#   Attach the module's resource policy (TLS-only deny + optional cross-account
+#   read). Disable if you manage aws_secretsmanager_secret_policy yourself.
+# create_resource_policy = true
+
+# policy  —  string  (optional, default: null)
+#   Full JSON resource policy to attach verbatim, overriding the generated one.
+#   Leave null to use the built-in policy.
+# policy = null
+
+# block_public_policy  —  bool  (optional, default: true)
+#   Reject a resource policy that grants broad public access. Kept true so a
+#   misconfigured policy cannot make the secret world-readable.
+# block_public_policy = true
+
+# reader_principal_arns  —  list  (optional, default: [])
+#   IAM principal ARNs (typically cross-account roles) allowed to read the
+#   secret value via the resource policy. Empty = no cross-account access.
+reader_principal_arns = ["arn:aws:iam::123456789012:role/example-reader"]
+
+# replica_regions  —  map  (optional, default: {})
+#   Map of replica region -> optional CMK id/ARN in that region. Null value uses
+#   the AWS-managed key in the replica region. Keeps a copy of the secret in
+#   other regions for DR/low-latency reads.
+# replica_regions = {}
+
+# enable_rotation  —  bool  (optional, default: false)
+#   Enable automatic rotation via a Lambda. Requires rotation_lambda_arn and a
+#   rotation schedule.
+# enable_rotation = false
+
+# rotation_lambda_arn  —  string  (optional, default: null)
+#   ARN of the Lambda that performs rotation. Required when enable_rotation =
+#   true.
+# rotation_lambda_arn = null
+
+# rotation_automatically_after_days  —  number  (optional, default: null)
+#   Rotate every N days. Mutually exclusive with rotation_schedule_expression;
+#   one of the two is required when rotation is enabled.
+#   Constraint: rotation_automatically_after_days must be between 1 and 1000.
+# rotation_automatically_after_days = null
+
+# rotation_schedule_expression  —  string  (optional, default: null)
+#   cron() or rate() schedule for rotation. Mutually exclusive with
+#   rotation_automatically_after_days.
+# rotation_schedule_expression = null
+
+# rotation_duration  —  string  (optional, default: null)
+#   Length of the rotation window, e.g. "3h" (1h-24h). Null leaves the AWS
+#   default.
+# rotation_duration = null
+
+# rotate_immediately  —  bool  (optional, default: false)
+#   Rotate once immediately when rotation is configured. Disable to wait for the
+#   first scheduled window.
+# rotate_immediately = false
+
+# tags  —  map  (optional, default: {})
+#   Tags applied to the secret.
+tags = {
+  Environment = "example"
+  ManagedBy   = "iac-bazaar"
+}
